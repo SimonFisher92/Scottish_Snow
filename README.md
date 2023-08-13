@@ -12,6 +12,9 @@ Where do we get the data from? Sentinal seems to be a great choice. We beleive w
 
 Where do we look? Gaining a method of data harvesting, we also need to agree on useful coordinates, and useful resolution (zoom). I know Eddie is an expert on this, Iain Cameron also may be someone to speak with. Its my feeling that as many coordinates as possible, spread over as many different regions of the highlands is the best approach. When I created Bluebird in 2020 (a weak version of what we are attempting to do here), Iain gave me a list of coordinates, I will add them to this repo as it might be a useful starting point.
 
+Old bluebird data:
+https://www.dropbox.com/sh/ti2esug7wzvqq2j/AAD_OuGe170Qb6rqGtpdTwwwa?dl=0
+
 ## 3) Segmentation
 
 Having experience here, I can tell you that the primary nemisis of this kind of analysis are clouds. Ostensibly, they look like snow patches. How do we segment snow out from cloud? I had a previous approach which leveraged the subtle differences in reflective wavelength at certain sentinel bandwidths, but i suspect there is a better way. 
