@@ -16,7 +16,7 @@ Where do we look? Gaining a method of data harvesting, we also need to agree on 
 
 Having experience here, I can tell you that the primary nemisis of this kind of analysis are clouds. Ostensibly, they look like snow patches. How do we segment snow out from cloud? I had a previous approach which leveraged the subtle differences in reflective wavelength at certain sentinel bandwidths, but i suspect there is a better way. 
 
-Eddie is looking at this at the moment, and Murray has found that sentinel provide segmentation masks for snow/ice with their data. Should we reinvent the wheel or use this?
+Eddie is looking at this at the moment, we are working at the lower end of "usefulness", as patches can become very small. Murray has found that sentinel provide segmentation masks for snow/ice with their data. Should we reinvent the wheel or use this? Its possible that the automatically generated segmentation masks are not of high enough resolution to catch the smallest patches.
 
 ## 4) Analysis
 
