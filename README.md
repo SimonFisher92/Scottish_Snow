@@ -81,3 +81,5 @@ This will create an "output" dir, and place summary plots and a csv here, which 
 
 Finally, see notebooks/scl\_time\_series\_analysis.ipynb for an example of plotting these time series, which looks a bit like this:
 
+![timeseries_beinn_dearg](https://github.com/SimonFisher92/Scottish_Snow/assets/11088372/2c402240-73a5-401a-8968-8ec72298f8f3)
+
