@@ -37,3 +37,32 @@ How do we convey our results? I really like Streamlit. Its a lightweight webapp 
 4) If you submit a pull request, please provide details
 5) Please be aware that it may take time for this repo to progress due to the commitments of repo members
 6) Anyone and everyone is welcome to join and contribute to this repo, but we should be aware of protecting the master branch
+
+
+
+# User guide
+---
+
+## Environment setup
+
+See requirements.txt. This can be installed in a virtual environment with `pip install -r requirements.txt`
+
+
+## Data download
+
+Running python -m src.download.main -h displays:
+
+	usage: main.py [-h] [--data_dir DATA_DIR] [--geojson_path GEOJSON_PATH] [--download_full] [--api_user API_USER] [--api_password API_PASSWORD]
+	
+	A script to download Sentinel-2 data for snowpatch analysis
+	
+	options:
+	  -h, --help            show this help message and exit
+	  --data_dir DATA_DIR   Path to dir where data should be cached
+	  --geojson_path GEOJSON_PATH
+	                        Path to geojson file containing polygons covering all areas which data should be downloaded for
+	  --download_full       Store the full data product, rather than just the 20m SCL band. Uses WAY more disk space.
+	  --api_user API_USER   Username for Copernicus Sentinel API
+	  --api_password API_PASSWORD
+	                        Password for Copernicus Sentinel API
+
