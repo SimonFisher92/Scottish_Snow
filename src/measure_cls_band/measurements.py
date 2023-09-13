@@ -120,7 +120,9 @@ def extract_time_series(rois, args) -> pd.DataFrame:
             jp2_path = data_to_jp2s[data_list[i]][0]
         except IndexError as e:
             logger.warning(e)
+            logger.warning(f"Skipping {data_list[i]}")
             continue
+
         date = date_from_filename(jp2_path.stem)
         dataset = rioxarray.open_rasterio(jp2_path).squeeze(drop=True).to_dataset(name="SCL")
 

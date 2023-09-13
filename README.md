@@ -70,3 +70,14 @@ An example command which I ran to get all the cairngorms data was:
 
 	python -m src.download.main --api_user="user" --api_password="password" --data_dir="data" --geojson_path="input/cairngorms_footprint.geojson"  --target_tile="T30VVJ" --max_cloud_cover=50
 
+
+## Analysis
+
+After downloading, you can run
+
+	python -m src.measure_cls_band.main --data_dir="data"
+
+This will create an "output" dir, and place summary plots and a csv here, which aggregates the snow area vs. time for each ROI.
+
+Finally, see notebooks/scl\_time\_series\_analysis.ipynb for an example of plotting these time series, which looks a bit like this:
+
