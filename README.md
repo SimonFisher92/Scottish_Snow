@@ -66,3 +66,7 @@ Running python -m src.download.main -h displays:
 	  --api_password API_PASSWORD
 	                        Password for Copernicus Sentinel API
 
+An example command which I ran to get all the cairngorms data was:
+
+	python -m src.download.main --api_user="user" --api_password="password" --data_dir="data" --geojson_path="input/cairngorms_footprint.geojson"  --target_tile="T30VVJ" --max_cloud_cover=50
+

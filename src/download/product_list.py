@@ -9,13 +9,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def get_product_ids(
-    user: str,
-    password: str,
-    footprint_geojson_filename: str = "input/cairngorms_footprint.geojson",
-    target_tile: Optional[str] = None,
-    max_cloud_cover: int = 50
-) -> List[str]:
+def get_product_ids(args) -> List[str]:
     """Get a list containing the product ids of all available products which we can find.
 
     For a particular footprint, you still often get adjacent tiles (I think due to the overlap
@@ -24,7 +18,10 @@ def get_product_ids(
     See https://eatlas.org.au/data/uuid/f7468d15-12be-4e3f-a246-b2882a324f59 for a useful
     interactive map of the tile grid.
     """
-    api = SentinelAPI(user, password)
+    api = SentinelAPI(args.api_user, args.api_password)
+    footprint_geojson_filename = args.geojson_path
+    target_tile = args.target_tile
+    max_cloud_cover = args.max_cloud_cover
 
     footprint = geojson_to_wkt(read_geojson(footprint_geojson_filename))
 

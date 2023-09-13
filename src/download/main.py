@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("--data_dir", type=str, help="Path to dir where data should be cached", default=".")
     parser.add_argument("--geojson_path", type=str, help="Path to geojson file containing polygons covering all areas which data should be downloaded for")
     parser.add_argument("--download_full", action="store_true", help="Store the full data product, rather than just the 20m SCL band. Uses WAY more disk space.")
+    parser.add_argument("--target_tile", type=str, default=None, help="Optional field to restrict data to a single tile, such as T30VVJ")
+    parser.add_argument("--max_cloud_cover", type=int, default=50, help="Only get results with total cloud cover % less than this")
     parser.add_argument("--api_user", type=str, help="Username for Copernicus Sentinel API")
     parser.add_argument("--api_password", type=str, help="Password for Copernicus Sentinel API")
 
@@ -35,7 +37,7 @@ def main():
 
     logger.info("Starting data download code")
 
-    prod_ids = get_product_ids(args.geojson_path)
+    prod_ids = get_product_ids(args)
 
     download_products(prod_ids, args)
 
