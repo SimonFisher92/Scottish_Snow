@@ -37,3 +37,50 @@ How do we convey our results? I really like Streamlit. Its a lightweight webapp 
 4) If you submit a pull request, please provide details
 5) Please be aware that it may take time for this repo to progress due to the commitments of repo members
 6) Anyone and everyone is welcome to join and contribute to this repo, but we should be aware of protecting the master branch
+
+
+
+# User guide
+---
+
+## Environment setup
+
+See requirements.txt. This can be installed in a virtual environment with `pip install -r requirements.txt`
+
+
+## Data download
+
+Running python -m src.download.main -h displays:
+
+	usage: main.py [-h] --data_dir DATA_DIR --geojson_path GEOJSON_PATH [--product_filter PRODUCT_FILTER] [--target_tile TARGET_TILE] [--max_cloud_cover MAX_CLOUD_COVER] --api_user API_USER --api_password API_PASSWORD
+	
+	A script to download Sentinel-2 data for snowpatch analysis. Example command: python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson'
+	--product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user=<> --api_password=<>
+	
+	options:
+	  -h, --help            show this help message and exit
+	  --data_dir DATA_DIR   Path to dir where data should be cached
+	  --geojson_path GEOJSON_PATH
+	                        Path to geojson file containing polygons covering all areas which data should be downloaded for
+	  --product_filter PRODUCT_FILTER
+	                        Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is '*SCL_20m.jp2' which only downloads SCL masks at 20m resolution. For all data use '*'. For 10m
+	                        resolution RGB use '*B0[234]_10m.jp2'. See documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.
+	  --target_tile TARGET_TILE
+	                        Optional field to restrict data to a single tile, such as T30VVJ
+	  --max_cloud_cover MAX_CLOUD_COVER
+	                        Only get results with total cloud cover % less than this
+	  --api_user API_USER   Username for Copernicus Sentinel API
+	  --api_password API_PASSWORD
+	                        Password for Copernicus Sentinel API
+
+Example commands:
+
+Get all the cairngorms 20m SCL band:
+
+	python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='*SCL_20m.jp2' --target_tile='T30VVJ' --api_user="" --api_password=""
+
+Get all the cairngorms 10m RGB bands:
+
+	python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user="" --api_password=""
+
+

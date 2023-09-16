@@ -1,0 +1,7 @@
+sentinelsat
+matplotlib
+pandas
+geopandas
+numpy
+xarray
+tqdm
