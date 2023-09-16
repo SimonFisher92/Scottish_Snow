@@ -19,20 +19,9 @@ from sentinelsat import SentinelAPI, make_path_filter
 logger = logging.getLogger(__name__)
 
 
-def _check_previous_download(cdir, title):
-    """If a .SAFE folder already exists, skip this product
-    """
-    downloaded_titles = set(x.stem for x in Path(cdir).glob("*.SAFE"))
-    return title in downloaded_titles
-
-
 def _download_prod_inner(prod_id, product_info, cdir, api, path_filter, retry_delay=1800):
     """This function tries to download a given product. Will retry every 30 mins until download succeeds. In particular, this function will keep retrying if a product is offline.
     """
-    if _check_previous_download(cdir, product_info["title"]):
-        logger.info(f"Found existing download of {product_info['title']}; skipping.")
-        return
-
     logger.info(f"Attempting download of {prod_id} to {cdir}")
 
     while True:
