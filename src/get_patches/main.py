@@ -37,7 +37,7 @@ def snowpatch_geojson(coords_dict: dict, offset: float):
         }
 
         # Save GeoJSON to a file
-        with open(f'input/{name}.geojson', 'w') as f:
+        with open(f'{name}.geojson', 'w') as f:
             json.dump(geojson_data, f, indent=4)
 
 
