@@ -1,17 +1,9 @@
-from typing import List, Tuple
-from dataclasses import dataclass
-from math import atan2
-from pathlib import Path
+from typing import List
 import logging
-import queue
 import concurrent.futures
 import argparse
 import time
 
-import numpy as np
-import xarray as xr
-import matplotlib.pyplot as plt
-import pandas as pd
 from tqdm import tqdm
 from sentinelsat import SentinelAPI, make_path_filter
 

@@ -1,9 +1,7 @@
 import logging
-from typing import List, Optional
+from typing import List
 
 from sentinelsat import SentinelAPI, read_geojson, geojson_to_wkt
-import matplotlib.pyplot as plt
-import pandas as pd
 
 
 logger = logging.getLogger(__name__)

@@ -1,13 +1,5 @@
-from pathlib import Path
 import logging
 import argparse
-
-import numpy as np
-import xarray as xr
-import matplotlib.pyplot as plt
-import pandas as pd
-from tqdm import tqdm
-from sentinelsat import SentinelAPI
 
 from src.download.download import download_products
 from src.download.product_list import get_product_ids
