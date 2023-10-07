@@ -1,8 +1,8 @@
 import logging
 import argparse
 
-from src.download.download import download_products
-from src.download.product_list import get_product_ids
+from download import download_products
+from product_list import get_product_ids
 
 
 logger = logging.getLogger(__name__)
