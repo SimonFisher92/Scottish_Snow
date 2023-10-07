@@ -5,6 +5,9 @@ from datetime import date
 import rasterio
 import matplotlib.pyplot as plt
 from pathlib import  Path
+import rasterio
+from rasterio.mask import mask
+import geopandas as gpd
 
 
 def patch_download_with_sentinelsat(patch_geojson_path: Path,
@@ -63,6 +66,32 @@ def patch_download_with_sentinelsat(patch_geojson_path: Path,
             time.sleep(retry_delay)
 
 
+def clip_sentinel_tile_to_region(tile_path: Path,
+                                 patch_geojson_path: Path) -> None:
+
+    # Read your GeoJSON into a GeoDataFrame
+    aoi_gdf = gpd.read_file(patch_geojson_path)
+
+
+    # Open the Sentinel image
+    with rasterio.open(tile_path) as src:
+        aoi_gdf = aoi_gdf.to_crs(src.crs)
+        out_image, out_transform = mask(src, aoi_gdf.geometry, crop=True)
+        out_meta = src.meta.copy()
+
+        # Update the metadata with new dimensions, transform, and CRS
+        out_meta.update({
+            "driver": "GTiff",
+            "height": out_image.shape[1],
+            "width": out_image.shape[2],
+            "transform": out_transform,
+            "crs": aoi_gdf.crs.to_string()
+        })
+
+        # Save the clipped image
+        with rasterio.open('clipped_image.tif', "w", **out_meta) as dest:
+            dest.write(out_image)
+
 def validate_image(path):
     with rasterio.open(path, 'r') as src:
         image_data = src.read(1)
@@ -77,9 +106,16 @@ def validate_image(path):
 
 
 if __name__ == "__main__":
-    patch_download_with_sentinelsat(
-        patch_geojson_path=Path('An_Stuc.geojson'),
-        username='YOURS',
-        password= 'YOURS',
-        download_dir= Path("../../data/snow_patches/An_Stuc")
+    # patch_download_with_sentinelsat(
+    #     patch_geojson_path=Path('An_Stuc.geojson'),
+    #     username='YOURS',
+    #     password= 'YOURS',
+    #     download_dir= Path("../../data/snow_patches/An_Stuc")
+    # )
+
+    clip_sentinel_tile_to_region(
+        tile_path=Path(r"C:\Users\Ultimate Gaming Comp\PycharmProjects\Scottish_Snow\data\snow_patches\An_Stuc\S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE\GRANULE\L1C_T30VVH_A041833_20230626T113321\IMG_DATA\T30VVH_20230626T113321_B06.jp2"),
+        patch_geojson_path=Path('An_Stuc.geojson')
     )
+
+    validate_image(r"C:\Users\Ultimate Gaming Comp\PycharmProjects\Scottish_Snow\data\snow_patches\An_Stuc\S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE\GRANULE\L1C_T30VVH_A041833_20230626T113321\IMG_DATA\T30VVH_20230626T113321_B06.jp2")
