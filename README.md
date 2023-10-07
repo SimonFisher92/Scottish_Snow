@@ -84,3 +84,16 @@ Get all the cairngorms 10m RGB bands:
 	python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user="" --api_password=""
 
 
+
+## Analysis
+
+After downloading, you can run
+
+	python -m src.measure_cls_band.main --data_dir="data"
+
+This will create an "output" dir, and place summary plots and a csv here, which aggregates the snow area vs. time for each ROI.
+
+Finally, see notebooks/scl\_time\_series\_analysis.ipynb for an example of plotting these time series, which looks a bit like this:
+
+![timeseries_beinn_dearg](https://github.com/SimonFisher92/Scottish_Snow/assets/11088372/2c402240-73a5-401a-8968-8ec72298f8f3)
+
