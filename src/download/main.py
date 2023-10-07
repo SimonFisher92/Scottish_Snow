@@ -1,13 +1,5 @@
-from pathlib import Path
 import logging
 import argparse
-
-import numpy as np
-import xarray as xr
-import matplotlib.pyplot as plt
-import pandas as pd
-from tqdm import tqdm
-from sentinelsat import SentinelAPI
 
 from src.download.download import download_products
 from src.download.product_list import get_product_ids
@@ -25,6 +17,7 @@ def parse_args():
     parser.add_argument("--product_filter", type=str, default="*SCL_20m.jp2", help=r"Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is '*SCL_20m.jp2' which only downloads SCL masks at 20m resolution. For all data use '*'. For 10m resolution RGB use '*B0[234]_10m.jp2'. See documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.")
     parser.add_argument("--target_tile", type=str, default=None, help="Optional field to restrict data to a single tile, such as T30VVJ")
     parser.add_argument("--max_cloud_cover", type=int, default=50, help="Only get results with total cloud cover %% less than this")
+    parser.add_argument("--month_range", type=str, default=None, help="Only get results from months in this range. Should be a string such as 4-10")
     parser.add_argument("--api_user", type=str, required=True, help="Username for Copernicus Sentinel API")
     parser.add_argument("--api_password", type=str, required=True, help="Password for Copernicus Sentinel API")
 
