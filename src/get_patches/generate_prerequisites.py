@@ -87,5 +87,5 @@ def get_coords_from_file(filepath: str) -> dict:
 if __name__ == "__main__":
     test_cords = get_coords_from_file('bluebird_coords')
     logging.info(test_cords)
-    snowpatch_geojson(test_cords, offset=1e-2)
+    snowpatch_geojson(test_cords, offset=5e-3)
 

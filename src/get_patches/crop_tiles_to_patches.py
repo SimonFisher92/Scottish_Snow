@@ -8,6 +8,7 @@ from pathlib import  Path
 import rasterio
 from rasterio.mask import mask
 import geopandas as gpd
+import shutil
 
 
 def patch_download_with_sentinelsat(patch_geojson_path: Path,
@@ -16,10 +17,14 @@ def patch_download_with_sentinelsat(patch_geojson_path: Path,
                                     download_dir: Path) -> None:
 
     """
+
+    I was exploring alternative methods to data downloading, this is no better than Murrays method and should
+    not be called preferentially
+
     This function may be used to get snowpatch images, based on the 9 sentinel bands available, using the
     sentinelsat api for simplicity
 
-    VERY IMPORTANT: this resolution of data is stored in the long term archive, these requests retrive from
+    VERY IMPORTANT: this resolution of data is stored in the long term archive, these requests retrieve from
     the LTA, the first retrieval may take hours. Once one of us has retrieved a patch, it should stay
     out of the LTA and be much faster for others
 
@@ -39,9 +44,9 @@ def patch_download_with_sentinelsat(patch_geojson_path: Path,
     # Search for available products
     # You can change the date and product type based on your needs
     products = api.query(footprint,
-                         date=('20230601', '20230630'),
+                         date=('20230301', '20230630'),
                          platformname='Sentinel-2',
-                         cloudcoverpercentage=(0, 50))
+                         cloudcoverpercentage=(0, 30))
 
     # Print found products
     print(f"{len(products)} products found.")
@@ -159,8 +164,8 @@ if __name__ == "__main__":
     # )
 
     clip_sentinel_tile_to_region(
-        tile_path=Path(r"../../data/snow_patches/An_Stuc/S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE/GRANULE/L1C_T30VVH_A041833_20230626T113321/IMG_DATA/T30VVH_20230626T113321_B02.jp2"),
-        patch_geojson_path=Path('An_Stuc.geojson')
+        tile_path=Path(r"..\..\data/S2B_MSIL2A_20230415T114349_N0509_R123_T30VVJ_20230415T124132.SAFE/GRANULE/L2A_T30VVJ_A031895_20230415T114350/IMG_DATA/R10m/T30VVJ_20230415T114349_B02_10m.jp2"),
+        patch_geojson_path=Path('Beinn_a_Bhuird.geojson')
     )
 
-    validate_image(Path(r"An_Stuc_B02_image.tif"))
+    validate_image(Path(r"Beinn_a_Bhuird_10m_image.tif"))
