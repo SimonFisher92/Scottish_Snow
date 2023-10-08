@@ -46,10 +46,8 @@ def patch_download_with_sentinelsat(patch_geojson_path: Path,
     # Print found products
     print(f"{len(products)} products found.")
 
-    #print(products)
 
-    # Download a specific product (or modify to download all products)
-    # This will download the first product from the list
+    # for dev purposes
     uuid = next(iter(products))
 
     max_retries = 5
@@ -68,10 +66,45 @@ def patch_download_with_sentinelsat(patch_geojson_path: Path,
 
 def clip_sentinel_tile_to_region(tile_path: Path,
                                  patch_geojson_path: Path) -> None:
+    """
+    Sentinel images come in tiles of 100mk^2, they must be clipped to snowpatches using the geojsons
+    the team has generated.
+
+    VERY IMPORTANT:
+    Here's a breakdown of the Sentinel-2 MSI bands and their respective resolutions:
+
+    10m Resolution Bands:
+
+    Band 2 (Blue)
+    Band 3 (Green)
+    Band 4 (Red)
+    Band 8 (NIR)
+    20m Resolution Bands:
+
+    Band 5 (Red Edge 1)
+    Band 6 (Red Edge 2)
+    Band 7 (Red Edge 3)
+    Band 8A (Red Edge 4)
+    Band 11 (SWIR 1)
+    Band 12 (SWIR 2)
+    60m Resolution Bands:
+
+    Band 1 (Coastal/Aerosol)
+    Band 9 (Water Vapor)
+    Band 10 (Cirrus)
+
+    Therefore, to load in the 10m res bands be sure to load ".....1_B02.jp2", ".....1_B03.jp2" etc
+
+    :param tile_path: path to desired tile
+    :param patch_geojson_path: path to geojson
+    :return: None currently
+    """
 
     # Read your GeoJSON into a GeoDataFrame
     aoi_gdf = gpd.read_file(patch_geojson_path)
 
+    patch = aoi_gdf['name'][0]
+    band = str(tile_path)[-7:-4]
 
     # Open the Sentinel image
     with rasterio.open(tile_path) as src:
@@ -89,17 +122,29 @@ def clip_sentinel_tile_to_region(tile_path: Path,
         })
 
         # Save the clipped image
-        with rasterio.open('clipped_image.tif', "w", **out_meta) as dest:
+        with rasterio.open(f"{patch}_{band}_image.tif", "w", **out_meta) as dest:
             dest.write(out_image)
 
-def validate_image(path):
+        print(f"{patch} image at band {band} successfully clipped and written to local directory")
+
+def validate_image(path: Path) -> None:
+
+    """
+    Simple plot function for output tiff
+    :param path: path to generated tiff
+    :return: None
+    """
+
+    filename = str(path).split('/')[-1]
+
+
     with rasterio.open(path, 'r') as src:
         image_data = src.read(1)
         # Plot the image data using matplotlib
         plt.figure(figsize=(10, 10))
         plt.imshow(image_data, cmap='gray')  # Change the colormap if needed
         plt.colorbar()
-        plt.title('JP2 Satellite Image')
+        plt.title(f'{filename}')
         plt.show()
 
 
@@ -114,8 +159,8 @@ if __name__ == "__main__":
     # )
 
     clip_sentinel_tile_to_region(
-        tile_path=Path(r"C:\Users\Ultimate Gaming Comp\PycharmProjects\Scottish_Snow\data\snow_patches\An_Stuc\S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE\GRANULE\L1C_T30VVH_A041833_20230626T113321\IMG_DATA\T30VVH_20230626T113321_B06.jp2"),
+        tile_path=Path(r"../../data/snow_patches/An_Stuc/S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE/GRANULE/L1C_T30VVH_A041833_20230626T113321/IMG_DATA/T30VVH_20230626T113321_B02.jp2"),
         patch_geojson_path=Path('An_Stuc.geojson')
     )
 
-    validate_image(r"C:\Users\Ultimate Gaming Comp\PycharmProjects\Scottish_Snow\data\snow_patches\An_Stuc\S2A_MSIL1C_20230626T113321_N0509_R080_T30VVH_20230626T151201.SAFE\GRANULE\L1C_T30VVH_A041833_20230626T113321\IMG_DATA\T30VVH_20230626T113321_B06.jp2")
+    validate_image(Path(r"An_Stuc_B02_image.tif"))
