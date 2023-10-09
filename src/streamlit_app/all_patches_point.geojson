@@ -1,0 +1,148 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Creag_Meagaidh"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.57494735455839,
+                    56.952699946355196
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Coire_Domhain"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -3.665306567272637,
+                    57.101050380315705
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Ciste_Mhearad"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -3.6341500299749896,
+                    57.12181364614503
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Nevis_Gullys"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.951683281979058,
+                    56.798726195708845
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Beinn_a_Bhuird"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -3.5009980223549064,
+                    57.07445012102833
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Gael_Charn"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.491527081409004,
+                    56.84103107673674
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "An_Riabhachan"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -5.095174310845323,
+                    57.36876671642763
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "An_Stuc"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.21819925395539,
+                    56.56194982435603
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Beinn_Mhanach"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.645657540240791,
+                    56.535851327970605
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Coire_Cruach_Sneachda"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.16107177734375,
+                    56.64077849723661
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Carn_na_Caim"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -4.191913605609443,
+                    56.90397803853171
+                ]
+            }
+        }
+    ]
+}

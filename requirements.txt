@@ -9,3 +9,7 @@ utm
 rasterio
 rioxarray
 jupyterlab
+streamlit
+sentinelhub
+folium
+streamlit-folium
