@@ -45,6 +45,8 @@ def download_products(prod_ids: List, args: argparse.Namespace):
     for prod_id in tqdm(prod_ids, desc="Retrieving product info"):
         product_infos[prod_id] = api.get_product_odata(prod_id)
 
+    logger.info(f"There are a total of {sum(v['Online'] for v in product_infos.values())}/{len(product_infos)} online products")
+
     if args.num_threads <= 0:
         # Run downloads one at a time, no concurrency
         for pid in tqdm(prod_ids, desc="Downloading products (no concurrency)"):
