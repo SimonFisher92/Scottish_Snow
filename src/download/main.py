@@ -14,7 +14,8 @@ def parse_args():
 
     parser.add_argument("--data_dir", type=str, required=True, help="Path to dir where data should be cached", default=".")
     parser.add_argument("--geojson_path", type=str, required=True, help="Path to geojson file containing polygons covering all areas which data should be downloaded for")
-    parser.add_argument("--product_filter", type=str, default="*SCL_20m.jp2", help=r"Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is '*SCL_20m.jp2' which only downloads SCL masks at 20m resolution. For all data use '*'. For 10m resolution RGB use '*B0[234]_10m.jp2'. See documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.")
+    parser.add_argument("--num_threads", type=int, default=0, help="Number of concurrent download threads. Default is 0 (no concurrency).")
+    parser.add_argument("--product_filter", type=str, default="", help=r"Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is no filter. For all data use '*'. For 10m resolution RGB use '*B0[234]_10m.jp2'. See documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.")
     parser.add_argument("--target_tile", type=str, default=None, help="Optional field to restrict data to a single tile, such as T30VVJ")
     parser.add_argument("--max_cloud_cover", type=int, default=50, help="Only get results with total cloud cover %% less than this")
     parser.add_argument("--month_range", type=str, default=None, help="Only get results from months in this range. Should be a string such as 4-10")
