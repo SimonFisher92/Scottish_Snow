@@ -52,28 +52,39 @@ See requirements.txt. This can be installed in a virtual environment with `pip i
 
 Running python -m src.download.main -h displays:
 
-	usage: main.py [-h] --data_dir DATA_DIR --geojson_path GEOJSON_PATH [--product_filter PRODUCT_FILTER] [--target_tile TARGET_TILE] [--max_cloud_cover MAX_CLOUD_COVER] --api_user API_USER --api_password API_PASSWORD
-	
 	A script to download Sentinel-2 data for snowpatch analysis. Example command: python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson'
 	--product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user=<> --api_password=<>
 	
-	options:
+	optional arguments:
 	  -h, --help            show this help message and exit
 	  --data_dir DATA_DIR   Path to dir where data should be cached
 	  --geojson_path GEOJSON_PATH
 	                        Path to geojson file containing polygons covering all areas which data should be downloaded for
+	  --num_threads NUM_THREADS
+	                        Number of concurrent download threads. Default is 0 (no concurrency).
 	  --product_filter PRODUCT_FILTER
-	                        Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is '*SCL_20m.jp2' which only downloads SCL masks at 20m resolution. For all data use '*'. For 10m
-	                        resolution RGB use '*B0[234]_10m.jp2'. See documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.
+	                        Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is no filter. For all data use '*'. For 10m resolution RGB use '*B0[234]_10m.jp2'. See
+	                        documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.
 	  --target_tile TARGET_TILE
 	                        Optional field to restrict data to a single tile, such as T30VVJ
 	  --max_cloud_cover MAX_CLOUD_COVER
 	                        Only get results with total cloud cover % less than this
+	  --month_range MONTH_RANGE
+	                        Only get results from months in this range. Should be a string such as 4-10
+	  --year YEAR           Only get results from this year. Should be a string such as 2020
 	  --api_user API_USER   Username for Copernicus Sentinel API
 	  --api_password API_PASSWORD
 	                        Password for Copernicus Sentinel API
+	
 
-Example commands:
+We recommend using `--num_threads=0` for now, as the concurrency may exhibit an intermittent bug.
+
+
+### Example commands:
+
+Get all cairngorms data from 2023, when cloud cover was below 50%:
+
+	python -m src.download.main --data_dir='/media/murray/BE10-C259/data/Scottish_Snow' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='' --num_threads=0 --target_tile='T30VVJ' --api_user="" --api_password="" --max_cloud_cover=50 --year=2023
 
 Get all the cairngorms 20m SCL band:
 
