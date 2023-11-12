@@ -56,13 +56,14 @@ def download_data(start_date,
                   resolution,
                   patchname,
                   cadence,
+                  satellite,
                   client_id,
                   client_secret,
                   savedir) -> None:
 
     #get each week/day between start and end date
-    weekly_flyover = pd.date_range(start=start_date, end=end_date, freq=cadence)
-    print(weekly_flyover)
+    flyover_iterator = pd.date_range(start=start_date, end=end_date, freq=cadence)
+    print(flyover_iterator)
 
     savedir = Path(savedir + '/' + patchname)
 
@@ -88,13 +89,13 @@ def download_data(start_date,
     aoi_bbox = BBox(bbox=anstuc_aoi_full, crs=CRS.WGS84)
 
     #start for loop to iterate through each week
-    for i in range(len(weekly_flyover)-1):
+    for i in range(len(flyover_iterator)-1):
 
-        time_interval = (weekly_flyover[i].strftime('%Y-%m-%d'), weekly_flyover[i+1].strftime('%Y-%m-%d'))
+        time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i+1].strftime('%Y-%m-%d'))
 
 
         search_iterator = catalog.search(
-            DataCollection.SENTINEL2_L2A,
+            satellite,
             bbox=aoi_bbox,
             time=time_interval,
             fields={"include": ["id", "properties.datetime"], "exclude": []},
@@ -129,7 +130,7 @@ def download_data(start_date,
             evalscript=evalscript_true_color,
             input_data=[
                 SentinelHubRequest.input_data(
-                    data_collection=DataCollection.SENTINEL2_L2A.define_from(
+                    data_collection=satellite.define_from(
                         name="s2", service_url="https://sh.dataspace.copernicus.eu"
                     ),
                     time_interval=(time_interval[0], time_interval[1]),
@@ -150,13 +151,14 @@ def download_data(start_date,
         image = true_color_imgs[0]
         print(f"Image type: {image.dtype}")
 
-        plot_image(image, factor=3 / 255, clip_range=(0, 1))
+        if len(results) > 0:
+            plot_image(image, factor=3 / 255, clip_range=(0, 1))
 
-        #create save path by combining path with image id and date
-        image_path = savedir / (results[0]['id'] + '.png')
+            #create save path by combining path with image id and date
+            image_path = savedir / (results[0]['id'] + '.png')
 
 
-        save_image(true_color_imgs[0], image_path , factor=3.5 / 255)
+            save_image(true_color_imgs[0], image_path , factor=3.5 / 255)
 
 
 
@@ -166,17 +168,23 @@ if __name__ == "__main__":
     #or message me and I'll send them to you
     #just dont commit them to github
 
-    client_id = ""
-    client_secret = ""
+    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
+    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
 
     cadence = {'weekly': 'W',
                'daily': 'D'}
 
-    download_data(start_date='2022-05-01',
-                  end_date='2022-09-10',
+    satellite = {"L1C": DataCollection.SENTINEL2_L1C,
+                 "L2A": DataCollection.SENTINEL2_L2A}
+
+    year = 2019
+
+    download_data(start_date=f'{year}-05-01',
+                  end_date=f'{year}-09-10',
                   resolution=10,
                   patchname= 'AnStuc',
-                  cadence=cadence['weekly'],
+                  cadence=cadence['daily'],
+                  satellite=satellite['L2A'],
                   client_id=client_id,
                   client_secret=client_secret,
                   savedir='data')
