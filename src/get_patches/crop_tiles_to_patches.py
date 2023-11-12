@@ -109,7 +109,9 @@ def clip_sentinel_tile_to_region(tile_path: Path,
     aoi_gdf = gpd.read_file(patch_geojson_path)
 
     patch = aoi_gdf['name'][0]
-    band = str(tile_path)[-7:-4]
+
+    #find band in filename where band consists of "B" followed by 2 digits
+    band = "B" + [x for x in str(tile_path).split('_') if x[0] == 'B'][0][1:]
 
     # Open the Sentinel image
     with rasterio.open(tile_path) as src:
