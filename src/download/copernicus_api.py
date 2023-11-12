@@ -1,10 +1,23 @@
 import pandas as pd
 from sentinelhub import SHConfig, DataCollection, SentinelHubCatalog, SentinelHubRequest, BBox, bbox_to_dimensions, CRS, MimeType, Geometry
 from typing import Any, Optional, Tuple
-
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+
+
+def geojson_to_bbox(geojson_path: Path) -> Tuple[float, float, float, float]:
+
+
+    with open(geojson_path) as f:
+        geojson = json.load(f)
+
+    #get top left and bottom right coordinates from geojson
+    top_left = geojson['geometry']['coordinates'][0][0]
+    bottom_right = geojson['geometry']['coordinates'][0][2]
+
+    return (top_left[0], top_left[1], bottom_right[0], bottom_right[1])
 
 
 def get_config(client_id: str,
@@ -55,11 +68,32 @@ def download_data(start_date,
                   end_date,
                   resolution,
                   patchname,
+                  geojson_path,
                   cadence,
                   satellite,
                   client_id,
                   client_secret,
                   savedir) -> None:
+
+    """Download data from the copernicus api
+
+    This is the migration to the new API. What is great about this is we dont need to download whole scenes, we can just download the area we want.
+    ie, we dont need to spend ages waiting for tiles to download that we dont need. We need to specify the area we want to download, and the resolution.
+
+
+    Args:
+        start_date (str): start date in format YYYY-MM-DD
+        end_date (str): end date in format YYYY-MM-DD
+        resolution (int): resolution of image in meters
+        patchname (str): name of patch, this will be used to create a folder to save the images in
+        cadence (str): cadence of flyover, either 'W' for weekly or 'D' for daily
+        satellite (str): satellite to download data from, either 'L1C' or 'L2A'
+        client_id (str): client id for copernicus api
+        client_secret (str): client secret for copernicus api
+        savedir (str): path to save directory
+
+    Returns: None
+    """
 
     #get each week/day between start and end date
     flyover_iterator = pd.date_range(start=start_date, end=end_date, freq=cadence)
@@ -76,17 +110,17 @@ def download_data(start_date,
 
     #TODO this should be able to take the geojsons, this is currently hardcoded
 
-    anstuc_aoi_full = (-4.227273084229953,56.56694982435603,-4.2091254236808275,56.556949824356025)
+    snowpatch_aoi = geojson_to_bbox(geojson_path)
 
 
-    aoi_bbox = BBox(bbox=anstuc_aoi_full, crs=CRS.WGS84)
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
     aoi_size = bbox_to_dimensions(aoi_bbox, resolution=resolution)
 
     print(f'Image shape at {resolution} m resolution: {aoi_size} pixels')
 
     config = get_config(client_id, client_secret)
     catalog = SentinelHubCatalog(config=config)
-    aoi_bbox = BBox(bbox=anstuc_aoi_full, crs=CRS.WGS84)
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
 
     #start for loop to iterate through each week
     for i in range(len(flyover_iterator)-1):
@@ -168,8 +202,8 @@ if __name__ == "__main__":
     #or message me and I'll send them to you
     #just dont commit them to github
 
-    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
-    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
+    client_id = ""
+    client_secret = ""
 
     cadence = {'weekly': 'W',
                'daily': 'D'}
@@ -182,7 +216,8 @@ if __name__ == "__main__":
     download_data(start_date=f'{year}-05-01',
                   end_date=f'{year}-09-10',
                   resolution=10,
-                  patchname= 'AnStuc',
+                  patchname= 'Ciste_Mhearad',
+                  geojson_path=Path.cwd().parent / 'get_patches' / 'Ciste_Mhearad.geojson',
                   cadence=cadence['daily'],
                   satellite=satellite['L2A'],
                   client_id=client_id,
