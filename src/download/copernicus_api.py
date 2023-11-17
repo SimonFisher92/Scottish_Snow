@@ -181,9 +181,9 @@ def download_data(start_date,
     #start for loop to iterate through each day/week
 
     print(f'Getting data for {patchname} from {start_date} to {end_date} at {resolution} m resolution')
-    for i in tqdm(range(len(flyover_iterator)-1)):
+    for i in tqdm(range(len(flyover_iterator)-1), desc=f'Image in Time Series for {patchname} in {year}'):
 
-        time.sleep(1) #scared of getting banned from the api :)
+        time.sleep(0.1) #scared of getting banned from the api :)
 
         time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i+1].strftime('%Y-%m-%d'))
 
@@ -236,14 +236,21 @@ def download_data(start_date,
             config=config,
         )
 
-        #retry the request if there is an error
+        #retry the request 2 times if there is a server side error
         try:
             true_color_imgs = request_true_color.get_data()
 
         except Exception as e:
             print(f'Error: {e}')
             print('Retrying request')
-            true_color_imgs = request_true_color.get_data()
+            try:
+                true_color_imgs = request_true_color.get_data()
+            except Exception as e:
+                print(f'Error: {e}')
+                print('Retrying request')
+                true_color_imgs = request_true_color.get_data()
+
+
 
         # print(f"Returned data is of type = {type(true_color_imgs)} and length {len(true_color_imgs)}.")
         # print(
@@ -253,6 +260,12 @@ def download_data(start_date,
         #print(f"Image type: {image.dtype}")
 
         if len(results) > 0:
+
+            # #randomly sample number between 1 and 20
+            # i= np.random.randint(1, 20)
+            #
+            # if i == 20:
+            #     # otherwise too many plots on the pycharm window causes error
             plot_image(image, factor=3 / 255, clip_range=(0, 1), upsample=upsampling)
 
             #create save path by combining path with image id and date
@@ -269,10 +282,11 @@ if __name__ == "__main__":
     #or message me and I'll send them to you
     #just dont commit them to github
 
-    client_id = ""
-    client_secret = ""
+    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
+    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
 
     cadence = {'weekly': 'W',
+
                'daily': 'D'}
 
     satellite = {"L1C": DataCollection.SENTINEL2_L1C,
@@ -305,7 +319,7 @@ if __name__ == "__main__":
 
 
         for geojson in geojsons:
-            print('You are in full mode, downloading all data, this may take around 1 hour')
+            print('You are in full mode, downloading all data, this will take several hours, set and forget')
             download_data(start_date=f'{year}-05-01',
                       end_date=f'{year}-09-30',
                       resolution=10,
