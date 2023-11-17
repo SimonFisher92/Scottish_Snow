@@ -2,6 +2,8 @@ import logging
 import json
 import math
 
+from pathlib import Path
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -13,6 +15,12 @@ def snowpatch_geojson(coords_dict: dict, offset: float):
     '''
 
     all_data = []
+
+    savedir = Path('../../geo_jsons')
+
+    if not savedir.exists():
+
+        savedir.mkdir(parents=True)
 
     for name, centroid in coords_dict.items():
 
@@ -46,19 +54,19 @@ def snowpatch_geojson(coords_dict: dict, offset: float):
         all_data.append(geojson_data)
 
         # Save individual GeoJSON to a file
-        with open(f'{name}.geojson', 'w') as f:
+        with open(savedir / f'{name}.geojson', 'w') as f:
             json.dump(geojson_data, f, indent=4)
 
 
     # Save all patches to one geojson file
 
-    all_geojson = {
-        "type": "FeatureCollection",
-        "features": all_data
-    }
-
-    with open('all_patches.geojson', 'w') as f:
-        json.dump(all_geojson, f, indent=4)
+    # all_geojson = {
+    #     "type": "FeatureCollection",
+    #     "features": all_data
+    # }
+    #
+    # with open(savedir / 'all_patches.geojson', 'w') as f:
+    #     json.dump(all_geojson, f, indent=4)
 
 
 def get_coords_from_file(filepath: str) -> dict:
@@ -87,5 +95,5 @@ def get_coords_from_file(filepath: str) -> dict:
 if __name__ == "__main__":
     test_cords = get_coords_from_file('bluebird_coords')
     logging.info(test_cords)
-    snowpatch_geojson(test_cords, offset=1e-3)
+    snowpatch_geojson(test_cords, offset=5e-3)
 

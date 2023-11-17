@@ -1,3 +1,4 @@
+import logging
 from datetime import time
 
 import pandas as pd
@@ -10,6 +11,8 @@ from pathlib import Path
 from skimage.transform import resize
 from skimage.util import img_as_ubyte
 import time
+
+from tqdm import tqdm
 
 
 def bicubic_upsampling(image: np.ndarray) -> np.ndarray:
@@ -30,7 +33,7 @@ def bicubic_upsampling(image: np.ndarray) -> np.ndarray:
     else:
         raise ValueError("Image data type not supported")
 
-    print(f"Input Image - Shape: {image.shape}, Dtype: {image.dtype}, Min: {image.min()}, Max: {image.max()}")
+    #print(f"Input Image - Shape: {image.shape}, Dtype: {image.dtype}, Min: {image.min()}, Max: {image.max()}")
 
 
 
@@ -43,8 +46,8 @@ def bicubic_upsampling(image: np.ndarray) -> np.ndarray:
         # Upscaling the image
         upscaled = resize(image, (image.shape[0] * 3, image.shape[1] * 3), order=3, mode='reflect', anti_aliasing=True)
 
-        print(
-            f"Upscaled Image - Shape: {upscaled.shape}, Dtype: {upscaled.dtype}, Min: {upscaled.min()}, Max: {upscaled.max()}")
+        # print(
+        #     f"Upscaled Image - Shape: {upscaled.shape}, Dtype: {upscaled.dtype}, Min: {upscaled.min()}, Max: {upscaled.max()}")
 
     except Exception as e:
         raise RuntimeError(f"Error during resizing: {e}")
@@ -120,6 +123,7 @@ def plot_image(
 def download_data(start_date,
                   end_date,
                   resolution,
+                  upsampling,
                   patchname,
                   geojson_path,
                   cadence,
@@ -150,7 +154,7 @@ def download_data(start_date,
 
     #get each week/day between start and end date
     flyover_iterator = pd.date_range(start=start_date, end=end_date, freq=cadence)
-    print(flyover_iterator)
+    #print(flyover_iterator)
 
     savedir = Path(savedir + '/' + patchname)
 
@@ -161,7 +165,6 @@ def download_data(start_date,
     if not savedir.exists():
         savedir.mkdir(parents=True)
 
-    #TODO this should be able to take the geojsons, this is currently hardcoded
 
     snowpatch_aoi = geojson_to_bbox(geojson_path)
 
@@ -169,14 +172,16 @@ def download_data(start_date,
     aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
     aoi_size = bbox_to_dimensions(aoi_bbox, resolution=resolution)
 
-    print(f'Image shape at {resolution} m resolution: {aoi_size} pixels')
+    #print(f'Image shape at {resolution} m resolution: {aoi_size} pixels')
 
     config = get_config(client_id, client_secret)
     catalog = SentinelHubCatalog(config=config)
     aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
 
-    #start for loop to iterate through each week
-    for i in range(len(flyover_iterator)-1):
+    #start for loop to iterate through each day/week
+
+    print(f'Getting data for {patchname} from {start_date} to {end_date} at {resolution} m resolution')
+    for i in tqdm(range(len(flyover_iterator)-1)):
 
         time.sleep(1) #scared of getting banned from the api :)
 
@@ -192,7 +197,7 @@ def download_data(start_date,
         )
 
         results = list(search_iterator)
-        print("Total number of results:", len(results))
+        #print("Total number of results:", len(results))
 
         #fyi this will take the least cloudy image from the weekly flyover
 
@@ -231,23 +236,30 @@ def download_data(start_date,
             config=config,
         )
 
-        true_color_imgs = request_true_color.get_data()
+        #retry the request if there is an error
+        try:
+            true_color_imgs = request_true_color.get_data()
 
-        print(f"Returned data is of type = {type(true_color_imgs)} and length {len(true_color_imgs)}.")
-        print(
-            f"Single element in the list is of type {type(true_color_imgs[-1])} and has shape {true_color_imgs[-1].shape}")
+        except Exception as e:
+            print(f'Error: {e}')
+            print('Retrying request')
+            true_color_imgs = request_true_color.get_data()
+
+        # print(f"Returned data is of type = {type(true_color_imgs)} and length {len(true_color_imgs)}.")
+        # print(
+        #     f"Single element in the list is of type {type(true_color_imgs[-1])} and has shape {true_color_imgs[-1].shape}")
 
         image = true_color_imgs[0]
-        print(f"Image type: {image.dtype}")
+        #print(f"Image type: {image.dtype}")
 
         if len(results) > 0:
-            plot_image(image, factor=3 / 255, clip_range=(0, 1))
+            plot_image(image, factor=3 / 255, clip_range=(0, 1), upsample=upsampling)
 
             #create save path by combining path with image id and date
             image_path = savedir / (results[0]['id'] + '.png')
 
 
-            save_image(true_color_imgs[0], image_path , factor=3.5 / 255)
+            save_image(true_color_imgs[0], image_path , factor=3.5 / 255, upsample=upsampling)
 
 
 
@@ -257,8 +269,8 @@ if __name__ == "__main__":
     #or message me and I'll send them to you
     #just dont commit them to github
 
-    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
-    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
+    client_id = ""
+    client_secret = ""
 
     cadence = {'weekly': 'W',
                'daily': 'D'}
@@ -266,15 +278,42 @@ if __name__ == "__main__":
     satellite = {"L1C": DataCollection.SENTINEL2_L1C,
                  "L2A": DataCollection.SENTINEL2_L2A}
 
-    year = 2019
+    years = [2017, 2018, 2019, 2020, 2021, 2022, 2023]
+    # list contents of geojson data directory
+    geojsons = list(Path.cwd().parent.parent.glob('geo_jsons/*.geojson'))
+    #print(geojsons)
 
-    download_data(start_date=f'{year}-05-01',
-                  end_date=f'{year}-09-10',
-                  resolution=10,
-                  patchname= 'Ciste_Mhearad',
-                  geojson_path=Path.cwd().parent / 'get_patches' / 'Ciste_Mhearad.geojson',
-                  cadence=cadence['daily'],
-                  satellite=satellite['L1C'],
-                  client_id=client_id,
-                  client_secret=client_secret,
-                  savedir='data')
+
+    #set to true for debugging etc, setting to false will get all data
+    developer_mode = False
+
+    for year in years:
+
+        if developer_mode: # lightweight mode for development
+            print('You are in developer mode, only downloading limited data for Ciste Mhearad')
+            download_data(start_date='2023-05-01',
+                      end_date='2023-06-02',
+                      resolution=10,
+                      upsampling=True,
+                      patchname= 'Ciste_Mhearad',
+                      geojson_path=Path.cwd().parent.parent / 'geo_jsons' / 'Ciste_Mhearad.geojson',
+                      cadence=cadence['weekly'],
+                      satellite=satellite['L1C'],
+                      client_id=client_id,
+                      client_secret=client_secret,
+                      savedir='data')
+
+
+        for geojson in geojsons:
+            print('You are in full mode, downloading all data, this may take around 1 hour')
+            download_data(start_date=f'{year}-05-01',
+                      end_date=f'{year}-09-30',
+                      resolution=10,
+                      upsampling=True,
+                      patchname= geojson.stem,
+                      geojson_path=geojson,
+                      cadence=cadence['daily'],
+                      satellite=satellite['L1C'],
+                      client_id=client_id,
+                      client_secret=client_secret,
+                      savedir='data')
