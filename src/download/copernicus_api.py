@@ -1,3 +1,5 @@
+from datetime import time
+
 import pandas as pd
 from sentinelhub import SHConfig, DataCollection, SentinelHubCatalog, SentinelHubRequest, BBox, bbox_to_dimensions, CRS, MimeType, Geometry
 from typing import Any, Optional, Tuple
@@ -5,8 +7,49 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from skimage.transform import resize
+from skimage.util import img_as_ubyte
+import time
 
 
+def bicubic_upsampling(image: np.ndarray) -> np.ndarray:
+    """Utility function for bicubic upsampling of RGB images."""
+
+    # Check if the image is a NumPy array
+    if not isinstance(image, np.ndarray):
+        raise ValueError("Input is not a NumPy array")
+
+    # Check the data type and range of the image
+    if image.dtype == np.uint8:
+        # Image with 0-255 range
+        pass
+    elif image.dtype in [np.float32, np.float64]:
+        # Image with 0.0-1.0 range
+        if image.min() < 0.0 or image.max() > 1.0:
+            raise ValueError("Floating-point image has values outside the range 0.0-1.0")
+    else:
+        raise ValueError("Image data type not supported")
+
+    print(f"Input Image - Shape: {image.shape}, Dtype: {image.dtype}, Min: {image.min()}, Max: {image.max()}")
+
+
+
+
+    # Upscaling the image
+    try:
+        upscaled = resize(image, (image.shape[0] * 3, image.shape[1] * 3),
+                          order=3, mode='reflect', anti_aliasing=True)
+
+        # Upscaling the image
+        upscaled = resize(image, (image.shape[0] * 3, image.shape[1] * 3), order=3, mode='reflect', anti_aliasing=True)
+
+        print(
+            f"Upscaled Image - Shape: {upscaled.shape}, Dtype: {upscaled.dtype}, Min: {upscaled.min()}, Max: {upscaled.max()}")
+
+    except Exception as e:
+        raise RuntimeError(f"Error during resizing: {e}")
+
+    return img_as_ubyte(upscaled)
 def geojson_to_bbox(geojson_path: Path) -> Tuple[float, float, float, float]:
 
 
@@ -38,10 +81,15 @@ def get_config(client_id: str,
 
 def save_image(image: np.ndarray,
                filename: Path,
-               factor: float = 1.0) -> None:
+               factor: float = 1.0,
+               upsample: bool = True) -> None:
 
     """Utility function for saving RGB images."""
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 15))
+
+    if upsample:
+        image = bicubic_upsampling(image)
+
     ax.imshow(np.clip(image * factor, 0, 1))
     ax.set_xticks([])
     ax.set_yticks([])
@@ -51,9 +99,14 @@ def plot_image(
     image: np.ndarray,
     factor: float = 1.0,
     clip_range: Optional[Tuple[float, float]] = None,
+    upsample: bool = True,
     **kwargs: Any
 ) -> None:
     """Utility function for plotting RGB images."""
+
+    if upsample:
+        image = bicubic_upsampling(image)
+
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 15))
     if clip_range is not None:
         ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
@@ -124,6 +177,8 @@ def download_data(start_date,
 
     #start for loop to iterate through each week
     for i in range(len(flyover_iterator)-1):
+
+        time.sleep(1) #scared of getting banned from the api :)
 
         time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i+1].strftime('%Y-%m-%d'))
 
@@ -202,8 +257,8 @@ if __name__ == "__main__":
     #or message me and I'll send them to you
     #just dont commit them to github
 
-    client_id = ""
-    client_secret = ""
+    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
+    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
 
     cadence = {'weekly': 'W',
                'daily': 'D'}
@@ -219,7 +274,7 @@ if __name__ == "__main__":
                   patchname= 'Ciste_Mhearad',
                   geojson_path=Path.cwd().parent / 'get_patches' / 'Ciste_Mhearad.geojson',
                   cadence=cadence['daily'],
-                  satellite=satellite['L2A'],
+                  satellite=satellite['L1C'],
                   client_id=client_id,
                   client_secret=client_secret,
                   savedir='data')
