@@ -231,7 +231,7 @@ def download_data(start_date,
     print(f'Getting data for {patchname} from {start_date} to {end_date} at {resolution} m resolution')
     for i in tqdm(range(len(flyover_iterator) - 1), desc=f'Image in Time Series for {patchname} in {year}'):
 
-        time.sleep(0.1)  # scared of getting banned from the api :)
+        time.sleep(0.01)  # scared of getting banned from the api :)
 
         time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i + 1].strftime('%Y-%m-%d'))
 
@@ -341,12 +341,12 @@ if __name__ == "__main__":
     satellite = {"L1C": DataCollection.SENTINEL2_L1C,
                  "L2A": DataCollection.SENTINEL2_L2A}
 
-    years = [2017, 2018, 2019, 2020, 2021, 2022, 2023]
+    years = [2018, 2019, 2020, 2021, 2022, 2023]
 
     geojsons = list(Path.cwd().parent.parent.glob('geo_jsons/*.geojson'))
 
     # set to true for debugging etc, setting to false will get all data
-    developer_mode = True
+    developer_mode = False
 
     for year in years:
 
@@ -358,12 +358,12 @@ if __name__ == "__main__":
                           #upsampling options: True or False
                           upsampling=True,
                           #image_type options: 'true_color' or 'snow'
-                          image_type='true_color',
+                          image_type='snow',
                           #patchname options: see ../geo_jsons
                           patchname='Ciste_Mhearad',
                           geojson_path=Path.cwd().parent.parent / 'geo_jsons' / 'Ciste_Mhearad.geojson',
                           #cadence options: 'weekly' or 'daily'
-                          cadence=cadence['weekly'],
+                          cadence=cadence['daily'],
                           #satellite options: 'L1C' or 'L2A', for snow use L2A
                           satellite=satellite['L2A'],
                           client_id=client_id,
@@ -382,7 +382,7 @@ if __name__ == "__main__":
                           patchname=geojson.stem,
                           geojson_path=geojson,
                           cadence=cadence['daily'],
-                          satellite=satellite['L1C'],
+                          satellite=satellite['L2A'],
                           client_id=client_id,
                           client_secret=client_secret,
                           savedir='data')
