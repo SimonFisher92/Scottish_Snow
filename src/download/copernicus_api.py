@@ -331,8 +331,8 @@ if __name__ == "__main__":
     # or message me and I'll send them to you
     # just dont commit them to github
 
-    client_id = "sh-08ba0f4f-0eb9-4638-8b20-9fab1042711d"
-    client_secret = "NLi765wHJK4j9AN3LeumESDGpgbVYVlS"
+    client_id = ""
+    client_secret = ""
 
     cadence = {'weekly': 'W',
 
