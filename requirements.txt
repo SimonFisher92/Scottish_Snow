@@ -1,11 +1,12 @@
-sentinelsat
 matplotlib
+sentinelhub
 pandas
 geopandas
 numpy
-xarray
 tqdm
 utm
 rasterio
+xarray
 rioxarray
 jupyterlab
+scikit-image
