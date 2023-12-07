@@ -83,13 +83,38 @@ def get_config(config_path: str = "config.json") -> SHConfig:
     return config
 
 
-def save_numpy_array(image: np.ndarray,
+def save_dem_image(image: np.ndarray,
                    filename: Path,
                    ) -> None:
     """
-    Utility function for saving numpy array
+    Utility function for saving png plot of digital elevation data
     """
-    np.save(filename, image)
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 8))
+
+    im = ax.imshow(image)  # Sliced to give RGB channels
+    fig.colorbar(im, ax=ax, label="Height [m]")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.savefig(filename, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+
+def save_cls_image(image: np.ndarray,
+                   filename: Path,
+                   ) -> None:
+    """
+    Utility function for saving RGB images.
+    """
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
+
+    cls_image = image[:, :, 0]
+    ax.imshow(cls_image)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    date = extract_date_from_filename(filename)
+    ax.set_title(date)
+    fig.savefig(filename, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 
 def save_rgb_image(image: np.ndarray,
@@ -100,45 +125,113 @@ def save_rgb_image(image: np.ndarray,
     """
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
 
-    factor = 3.5 / 10000  # We are downloading data in "DN" units, which have a range of 0-10,000. The 3.5 is to increase brightness.
+    factor = 3.5 / 10000  # The 3.5 is to increase brightness. The 10,000 is to convert from DN units. See: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S2L1C.html
     rgb_image = image[:, :, 3:0:-1]
     ax.imshow(np.clip(rgb_image * factor, 0, 1))  # Sliced to give RGB channels
     ax.set_xticks([])
     ax.set_yticks([])
     date = extract_date_from_filename(filename)
-    fig.title(date)
+    ax.set_title(date)
     fig.savefig(filename, bbox_inches='tight', pad_inches=0)
     plt.close()
-    
-    
-def extract_date_from_filename(filename):
+
+
+def extract_date_from_filename(filename: Path):
     """
     Extracts the date from a given filename.
 
     :param filename: The input filename
     :return: The extracted date in "YYYY-MM-DD" format, or None if not found
     """
-    parts = filename.split('_')
+    parts = filename.stem.split('_')
 
     # Find the part that contains the date
-    date_part = next((part for part in parts if part.isdigit() and len(part) == 8), None)
+    date_part = parts[2]
 
-    if date_part:
-        # Convert to a more readable format, if needed
-        formatted_date = f"{date_part[0:4]}-{date_part[4:6]}-{date_part[6:]}"
-        return formatted_date
-    else:
-        return None
+    # Convert to a more readable format
+    formatted_date = f"{date_part[0:4]}-{date_part[4:6]}-{date_part[6:]}"
+
+    return formatted_date
 
 
-def download_data(start_date,
-                  end_date,
-                  resolution,
-                  patchname,
-                  geojson_path,
-                  cadence,
-                  satellite,
-                  savedir) -> None:
+def download_dem_data(patchname, geojson_path, savedir) -> None:
+    """Download elevation data for each patch
+    """
+
+    savedir = Path(savedir) / "downloads" / patchname / "dem"
+
+    # If relative path is given, start from project root
+    if not savedir.is_absolute():
+        savedir = Path(__file__).parent.parent.parent / savedir
+
+    if not savedir.exists():
+        savedir.mkdir(parents=True)
+
+    numpy_filename = savedir / f"{patchname}_dem.npy"
+
+    if numpy_filename.exists():
+        logger.info(f"{numpy_filename} already exists: skipping")
+        return
+
+    evalscript_dem = """
+    //VERSION=3
+    function setup() {
+      return {
+        input: ["DEM"],
+        output:{
+          id: "default",
+          bands: 1,
+          sampleType: SampleType.FLOAT32
+        }
+      }
+    }
+
+    function evaluatePixel(sample) {
+      return [sample.DEM]
+    }
+    """
+
+    snowpatch_aoi = geojson_to_bbox(geojson_path)
+
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
+    aoi_size = bbox_to_dimensions(aoi_bbox, resolution=10)
+
+    config = get_config()
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
+
+    dem_request = SentinelHubRequest(
+        evalscript=evalscript_dem,
+        input_data=[
+            SentinelHubRequest.input_data(
+                data_collection=DataCollection.DEM.define_from(
+                    name="dem", service_url="https://sh.dataspace.copernicus.eu"
+                ),
+                time_interval=("2020-06-12", "2020-06-13"),  # Arbitrary dates, assume that elevation is constant
+            )
+        ],
+        responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+        bbox=aoi_bbox,
+        size=aoi_size,
+        config=config,
+    )
+
+    dem_data = dem_request.get_data()[0]
+
+    png_filename = savedir / f"{patchname}_dem.png"
+    save_dem_image(dem_data, png_filename)
+
+    np.save(numpy_filename, dem_data)
+
+
+
+
+def download_l1c_data(start_date,
+                      end_date,
+                      resolution,
+                      patchname,
+                      geojson_path,
+                      cadence,
+                      savedir) -> None:
     """Download data from the copernicus api
 
     This is the migration to the new API. What is great about this is we dont need to download whole scenes, we can just download the area we want.
@@ -151,7 +244,6 @@ def download_data(start_date,
     :param patchname: name of patch
     :param geojson_path: path to geojson
     :param cadence: weekly or daily
-    :param satellite: L1C or L2A (please use L2A for snow)
     :param savedir: directory to save images to
 
     :return: None
@@ -160,7 +252,7 @@ def download_data(start_date,
     # get each week/day between start and end date
     flyover_iterator = pd.date_range(start=start_date, end=end_date, freq=cadence)
 
-    savedir = Path(savedir) / "downloads" / patchname / f"{start_date}-{end_date}"
+    savedir = Path(savedir) / "downloads" / patchname / "l1c" / f"{start_date}-{end_date}"
 
     # If relative path is given, start from project root
     if not savedir.is_absolute():
@@ -189,7 +281,7 @@ def download_data(start_date,
         time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i + 1].strftime('%Y-%m-%d'))
 
         search_iterator = catalog.search(
-            satellite,
+            DataCollection.SENTINEL2_L1C,
             bbox=aoi_bbox,
             time=time_interval,
             fields={"include": ["id", "properties.datetime"], "exclude": []},
@@ -197,6 +289,15 @@ def download_data(start_date,
         )
 
         results = list(search_iterator)
+
+        if len(results) == 0:
+            continue
+
+        numpy_filename = savedir / (results[0]['id'] + '.npy')
+
+        if numpy_filename.exists():
+            logger.info(f"{numpy_filename} already exists: skipping")
+            continue
 
         # fyi this will take the least cloudy image from the weekly flyover
         # From Murray - is the above always true? Does it depend on whether the cadence is daily or weekly?
@@ -233,17 +334,19 @@ def download_data(start_date,
             }
         """
 
-        request_true_color = SentinelHubRequest(
+        request_all_bands = SentinelHubRequest(
             evalscript=evalscript_all_bands,
             input_data=[
                 SentinelHubRequest.input_data(
-                    data_collection=satellite.define_from(
-                        name="s2", service_url="https://sh.dataspace.copernicus.eu"
+                    data_collection=DataCollection.SENTINEL2_L1C.define_from(
+                        name="s2c", service_url="https://sh.dataspace.copernicus.eu"
                     ),
                     time_interval=(time_interval[0], time_interval[1]),
                     other_args={"dataFilter": {"mosaickingOrder": "leastCC"}})
             ],
-            responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+            responses=[
+                SentinelHubRequest.output_response("default", MimeType.TIFF),
+            ],
             bbox=aoi_bbox,
             size=aoi_size,
             config=config,
@@ -251,25 +354,149 @@ def download_data(start_date,
 
         # retry the request until no 500 error is returned, aka brute force the server until it gives us the data
         try:
-            images = request_true_color.get_data()
-
+            band_request = request_all_bands.get_data()
         except Exception as e:
             logger.error(e)
             continue
 
-        if len(results) > 0:
-            image = images[0]
-            image_path = savedir / "rgb" / (results[0]['id'] + '.png')
-            save_rgb_image(image, image_path)
-            numpy_path = savedir / "numpy" / (results[0]['id'] + '.npy')
-            save_numpy_array(image, numpy_path)
+        image = band_request[0]
+        image_path = savedir / (results[0]['id'] + '.png')
+        save_rgb_image(image, image_path)
+        np.save(numpy_filename, image)
+
+
+def download_l2a_data(start_date,
+                      end_date,
+                      resolution,
+                      patchname,
+                      geojson_path,
+                      cadence,
+                      savedir) -> None:
+    """Download data from the copernicus api
+
+    This is the migration to the new API. What is great about this is we dont need to download whole scenes, we can just download the area we want.
+    ie, we dont need to spend ages waiting for tiles to download that we dont need. We need to specify the area we want to download, and the resolution.
+
+
+    :param start_date: start date of time series
+    :param end_date: end date of time series
+    :param resolution: resolution of image
+    :param patchname: name of patch
+    :param geojson_path: path to geojson
+    :param cadence: weekly or daily
+    :param savedir: directory to save images to
+
+    :return: None
+    """
+
+    # get each week/day between start and end date
+    flyover_iterator = pd.date_range(start=start_date, end=end_date, freq=cadence)
+
+    savedir = Path(savedir) / "downloads" / patchname / "l2a" / f"{start_date}-{end_date}"
+
+    # If relative path is given, start from project root
+    if not savedir.is_absolute():
+        savedir = Path(__file__).parent.parent.parent / savedir
+
+    if not savedir.exists():
+        savedir.mkdir(parents=True)
+
+    snowpatch_aoi = geojson_to_bbox(geojson_path)
+
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
+    aoi_size = bbox_to_dimensions(aoi_bbox, resolution=resolution)
+
+    config = get_config()
+    catalog = SentinelHubCatalog(config=config)
+    aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
+
+    # start for loop to iterate through each day/week
+
+    logger.info(f'Getting data for {patchname} from {start_date} to {end_date} at {resolution} m resolution')
+
+    for i in tqdm(range(len(flyover_iterator) - 1), desc=f'Image in Time Series for {patchname} in {start_date[:4]}'):
+
+        time.sleep(0.01)  # scared of getting banned from the api :)
+
+        time_interval = (flyover_iterator[i].strftime('%Y-%m-%d'), flyover_iterator[i + 1].strftime('%Y-%m-%d'))
+
+        search_iterator = catalog.search(
+            DataCollection.SENTINEL2_L2A,
+            bbox=aoi_bbox,
+            time=time_interval,
+            fields={"include": ["id", "properties.datetime"], "exclude": []},
+
+        )
+
+        results = list(search_iterator)
+
+        if len(results) == 0:
+            continue
+
+        numpy_filename = savedir / (results[0]['id'] + '.npy')
+
+        if numpy_filename.exists():
+            logger.info(f"{numpy_filename} already exists: skipping")
+            continue
+
+        # fyi this will take the least cloudy image from the weekly flyover
+        # From Murray - is the above always true? Does it depend on whether the cadence is daily or weekly?
+
+        evalscript_cls = """
+            //VERSION=3
+            function setup() {
+                return {
+                    input: [{
+                        bands: ["SCL", "SNW", "CLD"],
+                        units: "DN"
+                    }],
+                    output: {
+                        bands: 3,
+                        sampleType: "INT16"
+                    }
+                };
+            }
+
+            function evaluatePixel(sample) {
+                return [sample.SCL,
+                        sample.SNW,
+                        sample.CLD];
+            }
+        """
+
+        request_all_bands = SentinelHubRequest(
+            evalscript=evalscript_cls,
+            input_data=[
+                SentinelHubRequest.input_data(
+                    data_collection=DataCollection.SENTINEL2_L2A.define_from(
+                        name="s2a", service_url="https://sh.dataspace.copernicus.eu"
+                    ),
+                    time_interval=(time_interval[0], time_interval[1]),
+                    other_args={"dataFilter": {"mosaickingOrder": "leastCC"}})
+            ],
+            responses=[
+                SentinelHubRequest.output_response("default", MimeType.TIFF)
+            ],
+            bbox=aoi_bbox,
+            size=aoi_size,
+            config=config,
+        )
+
+        # retry the request until no 500 error is returned, aka brute force the server until it gives us the data
+        try:
+            cls_response = request_all_bands.get_data()
+        except Exception as e:
+            logger.error(e)
+            continue
+
+        image = cls_response[0]
+        image_path = savedir / (results[0]['id'] + '.png')
+        save_cls_image(image, image_path)
+        np.save(numpy_filename, image)
 
 
 def main():
     cadence = {'weekly': 'W', 'daily': 'D'}
-
-    product_level = {"L1C": DataCollection.SENTINEL2_L1C,
-                     "L2A": DataCollection.SENTINEL2_L2A}
 
     years = [2018, 2019, 2020, 2021, 2022, 2023]
 
@@ -285,18 +512,31 @@ def main():
 
     assert len(geojsons) > 0
 
+    for geojson in geojsons:
+        logger.info(f"Downloading DEM for {geojson.stem}")
+        download_dem_data(patchname=geojson.stem, geojson_path=geojson, savedir="output")
+
     for year in years:
-        logger.info(f"Downloading data for year {year}")
+        logger.info(f"Downloading L1C band data for year {year}")
 
         for geojson in geojsons:
-            download_data(start_date=f'{year}-05-01',
-                          end_date=f'{year}-09-30',
-                          resolution=10,
-                          patchname=geojson.stem,
-                          geojson_path=geojson,
-                          cadence=cadence['daily'],
-                          satellite=product_level['L1C'],
-                          savedir='output')
+            logger.info(f"Downloading L1C band data for {geojson.stem}")
+            download_l1c_data(start_date=f'{year}-05-01',
+                              end_date=f'{year}-09-30',
+                              resolution=10,
+                              patchname=geojson.stem,
+                              geojson_path=geojson,
+                              cadence=cadence['daily'],
+                              savedir='output')
+
+            logger.info(f"Downloading L2A band data for {geojson.stem}")
+            download_l2a_data(start_date=f'{year}-05-01',
+                              end_date=f'{year}-09-30',
+                              resolution=10,
+                              patchname=geojson.stem,
+                              geojson_path=geojson,
+                              cadence=cadence['daily'],
+                              savedir='output')
 
 
 if __name__ == "__main__":
