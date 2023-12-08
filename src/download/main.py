@@ -6,6 +6,8 @@ from pathlib import Path
 import time
 
 import pandas as pd
+from matplotlib.colors import Normalize
+from scipy.ndimage import gaussian_filter
 from sentinelhub import SHConfig, DataCollection, SentinelHubCatalog, SentinelHubRequest, BBox, bbox_to_dimensions, CRS, \
     MimeType, Geometry
 import matplotlib.pyplot as plt
@@ -15,6 +17,38 @@ from tqdm import tqdm
 
 logger = logging.getLogger()
 
+
+def convert_dem_to_slope(dem_data: np.array,
+                         slope_png_filename: Path) -> None:
+    altitude = dem_data
+
+    smoothed_altitude = gaussian_filter(altitude, sigma=3)
+    norm_smoothed_altitude = Normalize()(smoothed_altitude)
+
+    grayscale_smoothed_altitude_image = np.uint8(plt.cm.gray(norm_smoothed_altitude) * 255)
+
+    grad_y_smoothed, grad_x_smoothed = np.gradient(smoothed_altitude)
+    slope_direction_smoothed = np.arctan2(grad_y_smoothed, grad_x_smoothed)
+
+    norm_slope_direction = Normalize()(slope_direction_smoothed)
+    direction_color_map = plt.cm.hsv(norm_slope_direction)
+
+    # Combine the grayscale intensity and the direction color map
+    combined_image = np.zeros((smoothed_altitude.shape[0], smoothed_altitude.shape[1], 3), dtype=np.uint8)
+    for i in range(3):  # Iterate over RGB channels
+        combined_image[..., i] = (grayscale_smoothed_altitude_image[..., 0] * direction_color_map[..., i]).astype(
+            np.uint8)
+
+    assert altitude.shape == combined_image.shape[:2]
+
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 8))
+
+    im = ax.imshow(combined_image)  # Sliced to give RGB channels
+    fig.colorbar(im, ax=ax, label="Height [m]")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.savefig(slope_png_filename, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 def bluebird_transform(image: np.ndarray) -> np.ndarray:
     """
@@ -218,7 +252,9 @@ def download_dem_data(patchname, geojson_path, savedir) -> None:
     dem_data = dem_request.get_data()[0]
 
     png_filename = savedir / f"{patchname}_dem.png"
+    slope_png_filename = savedir / f"{patchname}_slope.png"
     save_dem_image(dem_data, png_filename)
+    convert_dem_to_slope(dem_data, slope_png_filename)
 
     np.save(numpy_filename, dem_data)
 
