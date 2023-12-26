@@ -1,18 +1,28 @@
 import logging
 import json
 import math
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
 
-def snowpatch_geojson(coords_dict: dict, offset: float):
-    '''
+def write_geojson_bbox(coords_dict: dict, offset: float = 0.00675):
+    '''Write out bounding box geojson for dict of all snow patch coords
+
+    Note: 1 degree of latitude is 111,111 metres, so a 750m offset is 0.00675 degrees.
+    The default offset above gives 1.5km bounding boxes.
+
     :param coords_dict: input patch names and coordinates
     :param offset: the offset from the centre of the snowpatch required to the make the bounding box ROI (larger is bigger)
     :return: geojsons for specific patches
     '''
 
     all_data = []
+
+    savedir = Path(__file__).parent.parent.parent / "output" / "geojson_bboxes"  # Path resolves correctly independent of where script is run from
+
+    if not savedir.exists():
+        savedir.mkdir(parents=True)
 
     for name, centroid in coords_dict.items():
 
@@ -46,19 +56,10 @@ def snowpatch_geojson(coords_dict: dict, offset: float):
         all_data.append(geojson_data)
 
         # Save individual GeoJSON to a file
-        with open(f'{name}.geojson', 'w') as f:
+        filename = savedir / f'{name}.geojson'
+        with open(filename, 'w') as f:
             json.dump(geojson_data, f, indent=4)
-
-
-    # Save all patches to one geojson file
-
-    all_geojson = {
-        "type": "FeatureCollection",
-        "features": all_data
-    }
-
-    with open('all_patches.geojson', 'w') as f:
-        json.dump(all_geojson, f, indent=4)
+            logging.info(f"Written file to {filename}")
 
 
 def get_coords_from_file(filepath: str) -> dict:
@@ -85,7 +86,7 @@ def get_coords_from_file(filepath: str) -> dict:
 
 
 if __name__ == "__main__":
-    test_cords = get_coords_from_file('bluebird_coords')
+    test_cords = get_coords_from_file('bluebird_coords.txt')
     logging.info(test_cords)
-    snowpatch_geojson(test_cords, offset=1e-3)
+    write_geojson_bbox(test_cords)
 
