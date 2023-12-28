@@ -1,9 +1,11 @@
 sentinelsat
 matplotlib
+scikit-learn
 pandas
 geopandas
 numpy
 xarray
+netCDF4
 tqdm
 utm
 rasterio
