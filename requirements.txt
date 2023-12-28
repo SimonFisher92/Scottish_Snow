@@ -1,8 +1,10 @@
 matplotlib
-sentinelhub
+scikit-learn
 pandas
 geopandas
 numpy
+xarray
+netCDF4
 tqdm
 utm
 rasterio
