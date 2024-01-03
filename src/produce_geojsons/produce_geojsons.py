@@ -3,10 +3,13 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
+
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def write_geojson_bbox(coords_dict: dict, offset: float = 0.00675):
+def write_all_geojson_bbox(coords_dict: dict, offset: float = 0.00675) -> None:
     '''Write out bounding box geojson for dict of all snow patch coords
 
     Note: 1 degree of latitude is 111,111 metres, so a 750m offset is 0.00675 degrees.
@@ -24,34 +27,9 @@ def write_geojson_bbox(coords_dict: dict, offset: float = 0.00675):
     if not savedir.exists():
         savedir.mkdir(parents=True)
 
-    for name, centroid in coords_dict.items():
+    for name, coords in coords_dict.items():
 
-        # Use a longitude offset which is set to give square boxes, because distance per degree of longitude is not constant
-        correction = 1.0 / math.cos(2 * 3.141592 * centroid[1] / 360)
-
-        # Coords in (longitude, latitude)
-        top_left = [centroid[0] - offset * correction, centroid[1] + offset]
-        top_right = [centroid[0] + offset * correction, centroid[1] + offset]
-        bottom_right = [centroid[0] + offset * correction, centroid[1] - offset]
-        bottom_left = [centroid[0] - offset * correction, centroid[1] - offset]
-
-        # Create GeoJSON
-        geojson_data = {
-            "type": "Feature",
-            "properties": {"name": f"{name}"},
-            "geometry": {
-                "type": "Polygon", #arbitrary
-                "coordinates": [
-                    [
-                        top_left,
-                        top_right,
-                        bottom_right,
-                        bottom_left,
-                        top_left  # Closing the polygon by repeating the first point
-                    ]
-                ]
-            }
-        }
+        geojson_data = construct_geojson_data(coords, name, offset)
 
         all_data.append(geojson_data)
 
@@ -62,31 +40,50 @@ def write_geojson_bbox(coords_dict: dict, offset: float = 0.00675):
             logging.info(f"Written file to {filename}")
 
 
-def get_coords_from_file(filepath: str) -> dict:
-    '''
-    :param filepath: path to file containing coordinates of snowpatches from Iain, badly coded during Bluebird
-    as they were intended to directly pull up playground data for webscraping
-    :return: a dictionary of patch name, lat and lon
-    '''
+def construct_geojson_data(coords: list[float, float], name: str, offset: float) -> dict:
+    # Use a longitude offset which is set to give square-ish boxes, because distance per degree of longitude is not constant
+    lon_correction_factor = compute_lon_correction_factor(coords[1])
 
-    coords=[]
-    with open(filepath, 'r') as file:
-        for line in file:
-            coords.append(line.strip())
+    # Coords in (longitude, latitude)
+    top_left = [coords[0] - offset * lon_correction_factor, coords[1] + offset]
+    top_right = [coords[0] + offset * lon_correction_factor, coords[1] + offset]
+    bottom_right = [coords[0] + offset * lon_correction_factor, coords[1] - offset]
+    bottom_left = [coords[0] - offset * lon_correction_factor, coords[1] - offset]
 
-    coords_dict = {}
+    # Create GeoJSON
+    geojson_data = {
+        "type": "Feature",
+        "properties": {"name": f"{name}"},
+        "geometry": {
+            "type": "Polygon",  # arbitrary
+            "coordinates": [
+                [
+                    top_left,
+                    top_right,
+                    bottom_right,
+                    bottom_left,
+                    top_left  # Closing the polygon by repeating the first point
+                ]
+            ]
+        }
+    }
 
-    indices = range(0, len(coords)-1, 2)
+    return geojson_data
 
-    for i in indices:
-        coords_dict[coords[i].split('=')[1].strip("'\"")] = [float(coords[i+1].split('=')[4].split('&')[0]),
-                                                            float(coords[i+1].split('=')[3].split('&')[0])]
 
-    return coords_dict
+def compute_lon_correction_factor(latitude: float) -> float:
+    lon_correction_factor = 1.0 / math.cos(2 * np.pi * latitude / 360)
+    return lon_correction_factor
 
 
 if __name__ == "__main__":
-    test_cords = get_coords_from_file('bluebird_coords.txt')
-    logging.info(test_cords)
-    write_geojson_bbox(test_cords)
+    # Read name and coords from snowpatch_coords.json
+    snowpatch_coords_filepath = Path("snowpatch_coords.json")
+    with open(snowpatch_coords_filepath, 'r') as f:
+        snowpatch_coords = json.load(f)
+
+    logger.info(f"Found coords for {len(snowpatch_coords)} snowpatches")
+    logger.info(f"Snow patch names: {snowpatch_coords.keys()}")
+
+    write_all_geojson_bbox(snowpatch_coords, offset=0.00675)
 
