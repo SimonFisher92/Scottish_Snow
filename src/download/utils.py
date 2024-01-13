@@ -48,29 +48,19 @@ def geojson_to_bbox(geojson_path: Path) -> Tuple[float, float, float, float]:
     return top_left[0], top_left[1], bottom_right[0], bottom_right[1]
 
 
-def get_config(config_path: str = "config.json") -> SHConfig:
+def get_config(client_id: str = '', client_secret: str = '') -> SHConfig:
     """
     Utility function for getting the config for the Copernicus API. Reads a config file to find client_id
     and client_secret. Get these from https://shapps.dataspace.copernicus.eu/dashboard/#/account/settings
 
-    This looks for a simple json config file like:
-
-    {
-      "client_id": "..",
-      "client_secret": "..."
-    }
-
-    :param config_path: Path to the configuration file
     :return: SHConfig object
     """
-    assert Path(config_path).exists(), f"Error - cannot find config.json to read authentication tokens: {Path(config_path).resolve()}"
-
-    with open(config_path, 'r') as file:
-        config_data = json.load(file)
+    if client_id == '' or client_secret == '':
+        raise ValueError("Error: client_id and client_secret must be provided, please check the README for instructions on how to get these.")
 
     config = SHConfig()
-    config.sh_client_id = config_data['client_id']
-    config.sh_client_secret = config_data['client_secret']
+    config.sh_client_id = client_id
+    config.sh_client_secret = client_secret
     config.sh_token_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
     config.sh_base_url = "https://sh.dataspace.copernicus.eu"
 

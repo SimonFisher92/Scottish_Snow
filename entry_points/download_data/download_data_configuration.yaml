@@ -1,0 +1,19 @@
+# create a yaml of config for downloader
+
+output_dir: "../../downloaded_images/data"
+geojson_dir: "output/geojson_bboxes"
+visualise_data: True
+
+# Globals for the date interval which we get data from each year
+years: [2018, 2019, 2020, 2021, 2022, 2023]
+start_month: 5
+start_day: 1
+end_month: 9
+end_day: 30
+
+# Data resolution which we download
+resolution: 10
+
+# Short version of code for debugging
+dev_mode: False
+

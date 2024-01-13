@@ -2,6 +2,7 @@ import datetime
 import logging
 from dateutil import parser
 from pathlib import Path
+import yaml
 
 import pandas as pd
 from sentinelhub import DataCollection, SentinelHubCatalog, SentinelHubRequest, BBox, bbox_to_dimensions, CRS, \
@@ -16,22 +17,22 @@ from src.download.visualisation import plot_ds
 
 logger = logging.getLogger()
 
-# Basic parameters for the script
-OUTDIR = Path("output/downloads/data")
-VISUALISE_DATA = True
-
-# Globals for the date interval which we get data from each year
-YEARS = [2018, 2019, 2020, 2021, 2022, 2023]
-START_MONTH = 5
-START_DAY = 1
-END_MONTH = 9
-END_DAY = 30
-
-# Data resolution which we download
-RESOLUTION = 10
-
-# Short version of code for debugging
-DEV_MODE = False
+# # Basic parameters for the script
+# OUTDIR = Path("output/downloads/data")
+# VISUALISE_DATA = True
+#
+# # Globals for the date interval which we get data from each year
+# YEARS = [2018, 2019, 2020, 2021, 2022, 2023]
+# START_MONTH = 5
+# START_DAY = 1
+# END_MONTH = 9
+# END_DAY = 30
+#
+# # Data resolution which we download
+# RESOLUTION = 10
+#
+# # Short version of code for debugging
+# DEV_MODE = False
 
 
 def download_dem_data(geojson_path):
@@ -55,7 +56,7 @@ def download_dem_data(geojson_path):
 
     data_collection = DataCollection.DEM.define_from(name="dem", service_url="https://sh.dataspace.copernicus.eu")
 
-    dem_data = get_sentinelhub_data(evalscript_dem, geojson_path, data_collection, ("2020-06-12", "2020-06-13")).get_data()
+    dem_data = get_sentinelhub_data(evalscript_dem, geojson_path, data_collection, ("2020-06-12", "2020-06-13"), CLIENT_ID, CLIENT_SECRET).get_data()
 
     logger.info("Downloaded DEM data")
 
@@ -77,7 +78,7 @@ def add_slope_information(dem_data: np.array) -> np.array:
     return result
 
 
-def get_sentinelhub_data(evalscript: str, geojson_path: Path, data_collection: DataCollection, time_interval: tuple):
+def get_sentinelhub_data(evalscript: str, geojson_path: Path, data_collection: DataCollection, time_interval: tuple, client_id: str, client_secret: str):
 
     snowpatch_aoi = geojson_to_bbox(geojson_path)
     # lon, lat, lon, lat for BL and TR corners of box
@@ -97,15 +98,15 @@ def get_sentinelhub_data(evalscript: str, geojson_path: Path, data_collection: D
         responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
         bbox=aoi_bbox,
         size=aoi_size,
-        config=get_config(),
+        config=get_config(client_id, client_secret),
     )
     return request
 
 
-def search_sentinelhub_catalog(data_collection, geojson_path: Path, time_interval: tuple[datetime.datetime, datetime.datetime]) -> list:
+def search_sentinelhub_catalog(data_collection, geojson_path: Path, time_interval: tuple[datetime.datetime, datetime.datetime], client_id, client_secret) -> list:
     # Search catalog for actual data products (tiles) which intersect this geometry and time interval
 
-    catalog = SentinelHubCatalog(config=get_config())
+    catalog = SentinelHubCatalog(config=get_config(client_id, client_secret))
     snowpatch_aoi = geojson_to_bbox(geojson_path)
     # lon, lat, lon, lat for BL and TR corners of box
     aoi_bbox = BBox(bbox=snowpatch_aoi, crs=CRS.WGS84)
@@ -198,14 +199,17 @@ def l2a_evalscript():
     return evalscript_cls
 
 
-def download_l1c_data(year: int, geojson: Path) -> dict[datetime.date, np.array]:
+def download_l1c_data(year: int, geojson: Path, client_id, client_secret) -> dict[datetime.date, np.array]:
     logger.info(f"Downloading L1C band data for year {year}")
 
     catalog_results = search_sentinelhub_catalog(
         data_collection=DataCollection.SENTINEL2_L1C,
         geojson_path=geojson,
         time_interval=(datetime.datetime(year=year, month=START_MONTH, day=START_DAY),
-                       datetime.datetime(year=year, month=END_MONTH, day=END_DAY))
+                       datetime.datetime(year=year, month=END_MONTH, day=END_DAY)),
+        client_id=client_id,
+        client_secret=client_secret
+
     )
 
     flyover_dates = extract_unique_dates_from_catalog_results(catalog_results)
@@ -224,20 +228,22 @@ def download_l1c_data(year: int, geojson: Path) -> dict[datetime.date, np.array]
         # Note: SentinelHub will always return data, even if there was no flyover that day
         # Presumably this is the previous flyover to the requested day
         # This is why we also need to search the catalog first, so we only save data on days where there was a flyover
-        l1c_data_point = get_sentinelhub_data(l1c_evalscript(), geojson, data_collection, time_interval).get_data()
+        l1c_data_point = get_sentinelhub_data(l1c_evalscript(), geojson, data_collection, time_interval, client_id, client_secret).get_data()
         results[date] = l1c_data_point[0]
 
     return results
 
 
-def download_l2a_data(year: int, geojson: Path) -> dict[datetime.date, np.array]:
+def download_l2a_data(year: int, geojson: Path, client_id:str, client_secret: str) -> dict[datetime.date, np.array]:
     logger.info(f"Downloading L2A band data for year {year}")
 
     catalog_results = search_sentinelhub_catalog(
         data_collection=DataCollection.SENTINEL2_L2A,
         geojson_path=geojson,
         time_interval=(datetime.datetime(year=year, month=START_MONTH, day=START_DAY),
-                       datetime.datetime(year=year, month=END_MONTH, day=END_DAY))
+                       datetime.datetime(year=year, month=END_MONTH, day=END_DAY)),
+        client_id=client_id,
+        client_secret=client_secret
     )
 
     flyover_dates = extract_unique_dates_from_catalog_results(catalog_results)
@@ -252,7 +258,7 @@ def download_l2a_data(year: int, geojson: Path) -> dict[datetime.date, np.array]
             name="s2a", service_url="https://sh.dataspace.copernicus.eu"
         )
 
-        l2a_data_point = get_sentinelhub_data(l2a_evalscript(), geojson, data_collection, time_interval).get_data()
+        l2a_data_point = get_sentinelhub_data(l2a_evalscript(), geojson, data_collection, time_interval, client_id, client_secret).get_data()
         results[date] = l2a_data_point[0]
 
     return results
@@ -297,7 +303,32 @@ def construct_xarray_dataset(geojson_path, dem_data, l1c_data, l2a_data, dates) 
     return ds
 
 
-def main():
+def main(config):
+
+    # forgive me my sins in using global variables but this is the cleanest way to do it
+    global OUTDIR
+    OUTDIR = Path(config['output_dir'])
+    global VISUALISE_DATA
+    VISUALISE_DATA = config['visualise_data']
+    global YEARS
+    YEARS = config['years']
+    global START_MONTH
+    START_MONTH = config['start_month']
+    global START_DAY
+    START_DAY = config['start_day']
+    global END_MONTH
+    END_MONTH = config['end_month']
+    global END_DAY
+    END_DAY = config['end_day']
+    global RESOLUTION
+    RESOLUTION = config['resolution']
+    global DEV_MODE
+    DEV_MODE = config['dev_mode']
+    global CLIENT_ID
+    CLIENT_ID = config['client_id']
+    global CLIENT_SECRET
+    CLIENT_SECRET = config['client_secret']
+
     OUTDIR.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Created {OUTDIR.resolve()}")
 
@@ -308,9 +339,7 @@ def main():
     # set to true for debugging etc, setting to false will get all data
     if DEV_MODE:  # lightweight mode for development
         logger.info('You are in developer mode')
-        global YEARS
         YEARS = [2020]
-        global END_MONTH
         END_MONTH = 5
         geojsons = geojsons[:2]
     else:
@@ -327,8 +356,8 @@ def main():
                 logger.info(f"Dataset already stored for {geojson.stem}, {year}. Skipping.")
                 continue
 
-            date_to_l1c_data = download_l1c_data(year, geojson)  # l1c data has shape (height, width, 13)
-            date_to_l2a_data = download_l2a_data(year, geojson)  # l2a data has shape (height, width, 3)
+            date_to_l1c_data = download_l1c_data(year, geojson, CLIENT_ID, CLIENT_SECRET)  # l1c data has shape (height, width, 13)
+            date_to_l2a_data = download_l2a_data(year, geojson, CLIENT_ID, CLIENT_SECRET)  # l2a data has shape (height, width, 3)
 
             # Only keep dates where we have both L1C and L2A - they should be almost the same
             dates = list(set(date_to_l1c_data.keys()).intersection(date_to_l2a_data.keys()))
@@ -357,6 +386,21 @@ def main():
 
 
 if __name__ == "__main__":
+
+    # read yaml file
+
+    with open("../../entry_points/download_data/download_data_configuration.yaml", 'r') as stream:
+        config = yaml.safe_load(stream)
+
+    #print(config)
     logging.basicConfig(level=logging.INFO)
-    main()
+
+    #print out the config, each variable on new line
+    logging.info("Configuration:")
+    for key, value in config.items():
+        logging.info(f"{key}: {value}")
+
+
+
+    main(config)
 

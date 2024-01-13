@@ -87,6 +87,7 @@ def get_coords_from_file(filepath: str) -> dict:
 
 if __name__ == "__main__":
     test_cords = get_coords_from_file('bluebird_coords.txt')
+    print(test_cords)
     logging.info(test_cords)
     write_geojson_bbox(test_cords)
 
