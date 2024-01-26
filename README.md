@@ -50,61 +50,25 @@ See requirements.txt. This can be installed in a virtual environment with `pip i
 
 ## Data download
 
-Running python -m src.download.main -h displays:
+We have structured the code into entry points (see 'entry_points/download data').
 
-	A script to download Sentinel-2 data for snowpatch analysis. Example command: python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson'
-	--product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user=<> --api_password=<>
-	
-	optional arguments:
-	  -h, --help            show this help message and exit
-	  --data_dir DATA_DIR   Path to dir where data should be cached
-	  --geojson_path GEOJSON_PATH
-	                        Path to geojson file containing polygons covering all areas which data should be downloaded for
-	  --num_threads NUM_THREADS
-	                        Number of concurrent download threads. Default is 0 (no concurrency).
-	  --product_filter PRODUCT_FILTER
-	                        Path filter which is passed to sentinelsat.SentinelAPI.download(). The default is no filter. For all data use '*'. For 10m resolution RGB use '*B0[234]_10m.jp2'. See
-	                        documentation at https://sentinelsat.readthedocs.io/en/latest/api_overview.html#downloading-parts-of-products.
-	  --target_tile TARGET_TILE
-	                        Optional field to restrict data to a single tile, such as T30VVJ
-	  --max_cloud_cover MAX_CLOUD_COVER
-	                        Only get results with total cloud cover % less than this
-	  --month_range MONTH_RANGE
-	                        Only get results from months in this range. Should be a string such as 4-10
-	  --year YEAR           Only get results from this year. Should be a string such as 2020
-	  --api_user API_USER   Username for Copernicus Sentinel API
-	  --api_password API_PASSWORD
-	                        Password for Copernicus Sentinel API
-	
+In order to download satellite data, please review the following files in this repo
 
-We recommend using `--num_threads=0` for now, as the concurrency may exhibit an intermittent bug.
+1) 'download_data.py'. This is the file you need to run to begin data downloads from the copernicus api. It relies on the following:
+2) 'download_data_configuration.yaml'. This is the main config file, tweak parameters here as needs be, or leave at the default we have set
+3) 'my_coordinates.json'. This is a list of coordinates and accompanying names
+4) 'secret_copernicus_keys.json'. This is a file which contains your key and secret for the copernicus api in this format (YOU NEED TO CREATE THIS FILE):
 
+{
+  "client_id": "your_client_id",
+  "client_secret": "your_secret_key"
+}
 
-### Example commands:
+We do not share keys as we can hit the api limit very quickly. You can get your own keys by registering and going here: https://shapps.dataspace.copernicus.eu/dashboard/#/account/settings
 
-Get all cairngorms data from 2023, when cloud cover was below 50%:
-
-	python -m src.download.main --data_dir='/media/murray/BE10-C259/data/Scottish_Snow' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='' --num_threads=0 --target_tile='T30VVJ' --api_user="" --api_password="" --max_cloud_cover=50 --year=2023
-
-Get all the cairngorms 20m SCL band:
-
-	python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='*SCL_20m.jp2' --target_tile='T30VVJ' --api_user="" --api_password=""
-
-Get all the cairngorms 10m RGB bands:
-
-	python -m src.download.main --data_dir='data' --geojson_path='input/cairngorms_footprint.geojson' --product_filter='*B0[234]_10m.jp2' --target_tile='T30VVJ' --api_user="" --api_password=""
+Once you are happy with your configuration, run 'download_data.py', it will save images to the file in the yaml configuration in stacked .nc format, some
+processing would be required to convert these to visualisable formats, but high-level visualsations are also saved as part of the code
 
 
 
-## Analysis
-
-After downloading, you can run
-
-	python -m src.measure_cls_band.main --data_dir="data"
-
-This will create an "output" dir, and place summary plots and a csv here, which aggregates the snow area vs. time for each ROI.
-
-Finally, see notebooks/scl\_time\_series\_analysis.ipynb for an example of plotting these time series, which looks a bit like this:
-
-![timeseries_beinn_dearg](https://github.com/SimonFisher92/Scottish_Snow/assets/11088372/2c402240-73a5-401a-8968-8ec72298f8f3)
 

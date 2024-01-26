@@ -2,4 +2,4 @@ __pycache__
 output
 *.geojson
 *.png
-config.json
+entry_points/download_data/secret_copernicus_keys.json
